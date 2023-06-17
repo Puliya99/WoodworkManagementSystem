@@ -11,16 +11,20 @@ import javafx.scene.Cursor;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.CustomerModel;
-import lk.ijse.Woodwork.Model.ProductModel;
-import lk.ijse.Woodwork.Model.SaleOrderModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.CustomerBo;
+import lk.ijse.Woodwork.bo.custom.ProductBO;
+import lk.ijse.Woodwork.bo.custom.SaleOrderBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Customer;
-import lk.ijse.Woodwork.dto.Product;
-import lk.ijse.Woodwork.dto.SaleOrderDto;
+import lk.ijse.Woodwork.dto.CustomerDTO;
+import lk.ijse.Woodwork.dto.ProductDTO;
+import lk.ijse.Woodwork.dto.SaleOrderDTO;
 import lk.ijse.Woodwork.dto.tm.SaleOrderTm;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
@@ -98,7 +102,9 @@ public class SaleOrderFormController implements Initializable {
     @FXML
     private AnchorPane pane;
     private ObservableList<SaleOrderTm> obList = FXCollections.observableArrayList();
-
+    SaleOrderBo saleOrderBo = (SaleOrderBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.SALSEORDER);
+    CustomerBo customerBo = (CustomerBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.CUSTOMER);
+    ProductBO productBO = (ProductBO) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.PRODUCT);
     @FXML
     void btnAddToCartOnAction(ActionEvent event) {
         if (Integer.parseInt(txtQty.getText()) < Integer.parseInt(lblQtyOnHand.getText())) {
@@ -199,7 +205,7 @@ public class SaleOrderFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/SaleOrderReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/SaleOrderReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);
@@ -209,26 +215,36 @@ public class SaleOrderFormController implements Initializable {
     }
 
     @FXML
-    void btnPlaceOrderOnAction(ActionEvent event) {
+    void btnPlaceOrderOnAction(ActionEvent event) throws SQLException {
         String orderId = lblOrderId.getText();
         String jobCardNo = cmbJobCardNo.getValue();
         String Description = lblDescription.getText();
         Integer productQty = Integer.parseInt(txtQty.getText());
         Double productUnitPrice = (Double.parseDouble(lblNetTotal.getText()));
         String customerId = cmbCustomerId.getSelectionModel().getSelectedItem();
-        String amount = lblNetTotal.getText();
+        double amount = Double.parseDouble(lblNetTotal.getText());
 
-        List<SaleOrderDto> saleOrderList = new ArrayList<>();
+        List<SaleOrderDTO> saleOrderDTOList = new ArrayList<>();
+        List<ProductDTO> productDTOList = new ArrayList<>();
 
         for (int i = 0; i < tblSaleOrderCart.getItems().size(); i++) {
             SaleOrderTm tm = obList.get(i);
 
-            SaleOrderDto saleOrder = new SaleOrderDto(tm.getJobCardNumber(), tm.getProductQty(), tm.getUnitProductPrice(),Double.parseDouble(lblUnitPrice.getText()));
-            saleOrderList.add(saleOrder);
+            SaleOrderDTO saleOrder = new SaleOrderDTO(tm.getJobCardNumber(), tm.getProductQty(), tm.getUnitProductPrice(),Double.parseDouble(lblUnitPrice.getText()));
+            saleOrderDTOList.add(saleOrder);
+
+        }
+
+        for (int i = 0; i < tblSaleOrderCart.getItems().size(); i++) {
+            SaleOrderTm tm = obList.get(i);
+
+            ProductDTO productDTO = productBO.searchByIdProduct(tm.getJobCardNumber());
+            productDTO.setQty(tm.getProductQty());
+            productDTOList.add(productDTO);
         }
 
         try {
-            boolean isPlaced = SaleOrderModel.saleOrder(orderId,jobCardNo,Description,productQty,productUnitPrice, saleOrderList,customerId,LocalDate.now(),amount);
+            boolean isPlaced = saleOrderBo.saleOrder(orderId,jobCardNo,Description,productQty,productUnitPrice, saleOrderDTOList,productDTOList,customerId,LocalDate.now(),amount);
             if(isPlaced) {
                 new Alert(Alert.AlertType.INFORMATION, "Order Placed!").show();
                 generateNextOrderId();
@@ -246,7 +262,7 @@ public class SaleOrderFormController implements Initializable {
     void cmbCustomerIdOnAction(ActionEvent event) {
         String cus_id = cmbCustomerId.getSelectionModel().getSelectedItem();
         try {
-            Customer customer = CustomerModel.searchById(cus_id);
+            CustomerDTO customer = customerBo.searchByIdCustomer(cus_id);
             lblCustomerName.setText(customer.getCustName());
         } catch (SQLException e) {
             e.printStackTrace();
@@ -259,7 +275,7 @@ public class SaleOrderFormController implements Initializable {
         String code = cmbJobCardNo.getSelectionModel().getSelectedItem();
 
         try {
-            Product product = ProductModel.searchById(code);
+            ProductDTO product = productBO.searchByIdProduct(code);
             fillItemFields(product);
             txtQty.requestFocus();
         } catch (SQLException e) {
@@ -283,7 +299,7 @@ public class SaleOrderFormController implements Initializable {
 
     private void generateNextOrderId() {
         try {
-            String nextId = SaleOrderModel.generateNextOrderId();
+            String nextId = saleOrderBo.generateNextSaleOrderId();
             lblOrderId.setText(nextId);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -293,7 +309,7 @@ public class SaleOrderFormController implements Initializable {
     private void loadItemCodes() {
         try {
             ObservableList<String> obList = FXCollections.observableArrayList();
-            List<String> jobCardNo = ProductModel.getCodes();
+            List<String> jobCardNo = productBO.getCodesProduct();
 
             for (String code : jobCardNo ) {
                 obList.add(code);
@@ -307,7 +323,7 @@ public class SaleOrderFormController implements Initializable {
 
     private void loadCustomerIds() {
         try {
-            List<String> ids = CustomerModel.getIds();
+            List<String> ids = customerBo.getIdsCustomer();
             ObservableList<String> obList = FXCollections.observableArrayList();
 
             for (String id : ids) {
@@ -335,7 +351,7 @@ public class SaleOrderFormController implements Initializable {
         colAction.setCellValueFactory(new PropertyValueFactory<>("btn"));
     }
 
-    private void fillItemFields(Product product) {
+    private void fillItemFields(ProductDTO product) {
         lblDescription.setText(product.getDescription());
         lblJobCardDate.setText(String.valueOf(product.getJobCardStartDate()));
         lblUnitPrice.setText(String.valueOf(product.getUnitPrice()));

@@ -17,7 +17,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import lk.ijse.Woodwork.Model.*;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.*;
 import lk.ijse.Woodwork.dto.*;
 import lombok.SneakyThrows;
 import java.io.IOException;
@@ -46,7 +47,11 @@ public class DashboardFormController implements Initializable {
     private BarChart<String ,Integer> barChartEmpCount;
 
     public static String comDate;
-
+    EmployeeBo employeeBo = (EmployeeBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.EMPLOYEE);
+    SupplierBo supplierBo = (SupplierBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.SUPPLIER);
+    CustomerBo customerBo = (CustomerBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.CUSTOMER);
+    ItemBo itemBo = (ItemBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.ITEM);
+    ProductBO productBO = (ProductBO) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.PRODUCT);
     @FXML
     void btnAttendanceOnAction(ActionEvent event) throws IOException {
         rootChange.getChildren().clear();
@@ -171,23 +176,23 @@ public class DashboardFormController implements Initializable {
     }
 
     public int setEmployeeCount() throws SQLException {
-        List<Employee> empList = EmployeeModel.getAll();
+        List<EmployeeDTO> empList = employeeBo.getAllEmployee();
         return empList.size();
     }
     public int setSupplierCount() throws SQLException {
-        List<Supplier> empList = SupplierModel.getAll();
+        List<SupplierDTO> empList = supplierBo.getAllSupplier();
         return empList.size();
     }
     public int setCustomerCount() throws SQLException {
-        List<Customer> empList = CustomerModel.getAll();
+        List<CustomerDTO> empList = customerBo.getAllCustomer();
         return empList.size();
     }
     public int setItemCount() throws SQLException {
-        List<Item> empList = ItemModel.getAll();
+        List<ItemDTO> empList = itemBo.getAllItem();
         return empList.size();
     }
     public int setProductCount() throws SQLException {
-        List<Product> empList = ProductModel.getAll();
+        List<ProductDTO> empList = productBO.getAllProduct();
         return empList.size();
     }
 

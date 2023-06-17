@@ -12,7 +12,9 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.CreateAccountModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.CreateAccountBo;
+import lk.ijse.Woodwork.dto.UserDTO;
 import lk.ijse.Woodwork.util.Regex;
 import java.io.IOException;
 import java.net.URL;
@@ -49,6 +51,7 @@ public class CreateAccountFormController implements Initializable {
 
     private Boolean confirmPasswordVisible;
 
+    CreateAccountBo createAccountBo = (CreateAccountBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.CREATEACCOUNT);
     public void initialize(URL url, ResourceBundle resourceBundle) {
         confirmPasswordVisible = false;
         passwordVisible = false;
@@ -100,9 +103,9 @@ public class CreateAccountFormController implements Initializable {
 
         if (Regex.validateEmployeeCID(empId) && Regex.validateUsername(username)&& Regex.validatePassword(password)) {
             try {
-                boolean empIdVerified = CreateAccountModel.empIdVerified(empId);
+                boolean empIdVerified = createAccountBo.empIdVerifiedAccount(empId);
                 if (empIdVerified) {
-                    boolean isSave = CreateAccountModel.save(username,password);
+                    boolean isSave = createAccountBo.saveAccount(new UserDTO(username,password));
                     if (isSave) {
                         new Alert(Alert.AlertType.INFORMATION, "Account Create successful!").show();
                         Stage window = (Stage) root.getScene().getWindow();

@@ -1,6 +1,5 @@
 package lk.ijse.Woodwork.controller;
 
-import com.jfoenix.controls.JFXButton;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -12,9 +11,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.CustomerModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.CustomerBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Customer;
+import lk.ijse.Woodwork.dto.CustomerDTO;
 import lk.ijse.Woodwork.dto.tm.CustomerTm;
 import lk.ijse.Woodwork.util.Regex;
 import net.sf.jasperreports.engine.*;
@@ -65,7 +65,7 @@ public class CustomerFormController implements Initializable {
 
     @FXML
     private TextField txtSearch;
-
+    CustomerBo customerBo = (CustomerBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.CUSTOMER);
     @FXML
     void btnAddNewOnAction(ActionEvent event) {
         String cusId = txtCusId.getText();
@@ -78,7 +78,7 @@ public class CustomerFormController implements Initializable {
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = CustomerModel.save(cusId, custName, custAddress, custContactNo);
+                    boolean isSaved = customerBo.saveCustomer(new CustomerDTO(cusId, custName, custAddress, custContactNo));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Customer saved!!!").show();
                         getAll();
@@ -121,7 +121,7 @@ public class CustomerFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = CustomerModel.delete(ID);
+                Boolean isDeleted = customerBo.deleteCustomer(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "Customer DELETED").show();
                     txtSearch.setText(null);
@@ -144,7 +144,7 @@ public class CustomerFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String cusId = txtSearch.getText();
         try {
-            Customer customer = CustomerModel.search(cusId);
+            CustomerDTO customer = customerBo.searchCustomer(cusId);
             if (customer != null) {
                 txtCusId.setText(customer.getCustId());
                 txtCusName.setText(customer.getCustName());
@@ -166,14 +166,14 @@ public class CustomerFormController implements Initializable {
         String custAddress = txtCusAddress.getText();
         String custContactNo = txtCusContactNo.getText();
 
-        var customer = new Customer(custId, custName, custAddress, custContactNo);
+        var customer = new CustomerDTO(custId, custName, custAddress, custContactNo);
         if (Regex.validateCustomerCID(custId) && Regex.validateName(custName) && Regex.validateAddress(custAddress) && Regex.validateMobile(custContactNo)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = CustomerModel.update(customer);
+                    boolean isUpdated = customerBo.updateCustomer(new CustomerDTO(custId, custName, custAddress, custContactNo));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! Customer Updated!").show();
                         getAll();
@@ -233,9 +233,9 @@ public class CustomerFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<CustomerTm> obList = FXCollections.observableArrayList();
-            List<Customer> cusList = CustomerModel.getAll();
+            List<CustomerDTO> cusList = customerBo.getAllCustomer();
 
-            for(Customer customer : cusList) {
+            for(CustomerDTO customer : cusList) {
                 obList.add(new CustomerTm(
                         customer.getCustId(),
                         customer.getCustName(),
@@ -253,7 +253,7 @@ public class CustomerFormController implements Initializable {
     public void btnReportOnAction(ActionEvent actionEvent) {
 
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/CustomerReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/CustomerReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);

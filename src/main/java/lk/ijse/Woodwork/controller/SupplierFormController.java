@@ -11,9 +11,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.SupplierModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.SupplierBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Supplier;
+import lk.ijse.Woodwork.dto.SupplierDTO;
 import lk.ijse.Woodwork.dto.tm.SupplierTm;
 import lk.ijse.Woodwork.util.Regex;
 import net.sf.jasperreports.engine.*;
@@ -67,7 +68,7 @@ public class SupplierFormController implements Initializable {
 
     @FXML
     private TextField txtSupName;
-
+    SupplierBo supplierBo = (SupplierBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.SUPPLIER);
     @FXML
     void btnBackOnAction(ActionEvent event) throws IOException {
         Stage window = (Stage)  addSupplier.getScene().getWindow();
@@ -92,7 +93,7 @@ public class SupplierFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = SupplierModel.delete(ID);
+                Boolean isDeleted = supplierBo.deleteSupplier(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "Supplier DELETED").show();
                     txtSearch.setText(null);
@@ -125,7 +126,7 @@ public class SupplierFormController implements Initializable {
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = SupplierModel.save(supplierId, empId, supplierName, supplierAddress, supplierContactNo);
+                    boolean isSaved = supplierBo.saveSupplier(new SupplierDTO(supplierId, empId, supplierName, supplierAddress, supplierContactNo));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Supplier saved!!!").show();
                         txtSearch.setText(null);
@@ -150,7 +151,7 @@ public class SupplierFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String supplierId = txtSearch.getText();
         try {
-            Supplier supplier = SupplierModel.search(supplierId);
+            SupplierDTO supplier = supplierBo.searchSupplier(supplierId);
             if (supplier != null) {
                 txtSupId.setText(supplier.getSupplierId());
                 txtEmpId.setText(supplier.getEmpId());
@@ -174,14 +175,14 @@ public class SupplierFormController implements Initializable {
         String supplierAddress = txtSupAddress.getText();
         String supplierContactNo = txtContactNo.getText();
 
-        var supplier = new Supplier(supplierId, empId, supplierName, supplierAddress, supplierContactNo);
+
          if (Regex.validateSupplierCID(supplierId) && Regex.validateEmployeeCID(empId) && Regex.validateName(supplierName) && Regex.validateAddress(supplierAddress) && Regex.validateMobile(supplierContactNo)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = SupplierModel.update(supplier);
+                    boolean isUpdated = supplierBo.updateSupplier(new SupplierDTO(supplierId, empId, supplierName, supplierAddress, supplierContactNo));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! Supplier Updated!").show();
                         txtSearch.setText(null);
@@ -207,7 +208,7 @@ public class SupplierFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/SupplierReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/SupplierReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
 //            JasperPrintManager.printReport(jasperPrint, true);
@@ -253,9 +254,9 @@ public class SupplierFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<SupplierTm> obList = FXCollections.observableArrayList();
-            List<Supplier> cusList = SupplierModel.getAll();
+            List<SupplierDTO> cusList = supplierBo.getAllSupplier();
 
-            for(Supplier supplier : cusList) {
+            for(SupplierDTO supplier : cusList) {
                 obList.add(new SupplierTm(
                         supplier.getSupplierId(),
                         supplier.getEmpId(),

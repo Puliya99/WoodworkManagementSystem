@@ -12,9 +12,10 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.AttendanceModel;
+import lk.ijse.Woodwork.bo.custom.AttendanceBo;
+import lk.ijse.Woodwork.bo.BOFactory;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Attendance;
+import lk.ijse.Woodwork.dto.AttendanceDTO;
 import lk.ijse.Woodwork.dto.tm.AttendanceTm;
 import lk.ijse.Woodwork.util.Regex;
 import net.sf.jasperreports.engine.*;
@@ -75,6 +76,8 @@ public class AttendanceFormController implements Initializable {
     @FXML
     private TextField txtWorkingHourse;
 
+    AttendanceBo attendanceBo = (AttendanceBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.ATTENDANCE);
+
     @FXML
     void btnBackOnAction(ActionEvent event) throws IOException {
         Stage window = (Stage)  addAttendace.getScene().getWindow();
@@ -100,7 +103,7 @@ public class AttendanceFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = AttendanceModel.delete(ID);
+                Boolean isDeleted = attendanceBo.deleteAttendance(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "EMPLOYEE ATTENDANCE DETAILS DELETED").show();
                     txtSearch.setText(null);
@@ -135,7 +138,7 @@ public class AttendanceFormController implements Initializable {
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = AttendanceModel.save(empId, jobCardNo, date, description, workingHours,empSalary);
+                    boolean isSaved = attendanceBo.saveAttendance(new AttendanceDTO(empId, jobCardNo, date, description, workingHours, empSalary));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Attendance saved!!!").show();
                         txtSearch.setText(null);
@@ -166,14 +169,14 @@ public class AttendanceFormController implements Initializable {
         int workingHours = Integer.parseInt(txtWorkingHourse.getText());
         double empSalary = Double.parseDouble(txtEmpSalary.getText());
 
-        var attendance = new Attendance(empId, jobCardNo, date, description, workingHours, empSalary);
+        var attendance = new AttendanceDTO(empId, jobCardNo, date, description, workingHours, empSalary);
         if (Regex.validateEmployeeCID(empId) && Regex.validateProductCID(jobCardNo)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = AttendanceModel.update(attendance);
+                    boolean isUpdated = attendanceBo.updateAttendance(new AttendanceDTO(empId, jobCardNo, date, description, workingHours, empSalary));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! ATTENDANCE DETAILS UPDATED!").show();
                         txtSearch.setText(null);
@@ -201,7 +204,7 @@ public class AttendanceFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String empId = txtSearch.getText();
         try {
-            Attendance attendance = AttendanceModel.search(empId);
+            AttendanceDTO attendance = attendanceBo.searchAttendace(empId);;
             if (attendance != null) {
                 txtEmpId.setText(attendance.getEmpId());
                 txtJobCardNo.setText(attendance.getJobCardNo());
@@ -221,7 +224,7 @@ public class AttendanceFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/salaryAndAttendaceReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/salaryAndAttendaceReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);
@@ -274,9 +277,9 @@ public class AttendanceFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<AttendanceTm> obList = FXCollections.observableArrayList();
-            List<Attendance> cusList = AttendanceModel.getAll();
+            List<AttendanceDTO> cusList = attendanceBo.getAllAttendace();
 
-            for(Attendance attendance : cusList) {
+            for(AttendanceDTO attendance : cusList) {
                 obList.add(new AttendanceTm(
                         attendance.getEmpId(),
                         attendance.getJobCardNo(),

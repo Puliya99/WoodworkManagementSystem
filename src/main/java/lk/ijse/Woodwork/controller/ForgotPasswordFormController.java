@@ -10,11 +10,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.ForgotPasswordModel;
-import lk.ijse.Woodwork.dto.User;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.ForgotPasswordBo;
+import lk.ijse.Woodwork.dto.UserDTO;
 import lk.ijse.Woodwork.util.Regex;
 import java.io.IOException;
 import java.net.URL;
@@ -47,7 +47,7 @@ public class ForgotPasswordFormController implements Initializable {
     private Boolean passwordVisible;
 
     private Boolean confirmPasswordVisible;
-
+    ForgotPasswordBo forgotPasswordBo = (ForgotPasswordBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.FROGETPASSWORD);
     public void initialize(URL url, ResourceBundle resourceBundle) {
         confirmPasswordVisible = false;
         passwordVisible = false;
@@ -98,10 +98,10 @@ public class ForgotPasswordFormController implements Initializable {
 
         if (Regex.validateUsername(username)&& Regex.validatePassword(password)) {
             try {
-                boolean isUserVerified = ForgotPasswordModel.userVerified(username);
+                boolean isUserVerified = forgotPasswordBo.userVerifiedUserName(username);
                 if (isUserVerified) {
-                    var user = new User(username, password);
-                    boolean isUpdated = ForgotPasswordModel.update(user);
+                    var user = new UserDTO(username, password);
+                    boolean isUpdated = forgotPasswordBo.updatePassword(new UserDTO(username, password));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "Password reset successful!").show();
                         Stage window = (Stage) root.getScene().getWindow();

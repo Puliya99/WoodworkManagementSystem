@@ -1,6 +1,5 @@
 package lk.ijse.Woodwork.controller;
 
-import com.jfoenix.controls.JFXButton;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -13,16 +12,16 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.ItemModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.ItemBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Item;
+import lk.ijse.Woodwork.dto.ItemDTO;
 import lk.ijse.Woodwork.dto.tm.ItemTm;
 import lk.ijse.Woodwork.util.Regex;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
 import net.sf.jasperreports.view.JasperViewer;
-
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -68,6 +67,7 @@ public class ItemFormController implements Initializable {
     @FXML
     private TextField txtUnitPrice;
 
+    ItemBo itemBo = (ItemBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.ITEM);
     @FXML
     void btnBackOnAction(ActionEvent event) throws IOException {
         Stage window = (Stage)  addItem.getScene().getWindow();
@@ -91,7 +91,7 @@ public class ItemFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = ItemModel.delete(ID);
+                Boolean isDeleted = itemBo.deleteItem(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "Item DELETED").show();
                     txtSearch.setText(null);
@@ -122,7 +122,7 @@ public class ItemFormController implements Initializable {
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = ItemModel.save(itemCode, description, qty, unitPrice);
+                    boolean isSaved = itemBo.saveItem(new ItemDTO(itemCode, description, qty, unitPrice));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Item saved!!!").show();
                         txtSearch.setText(null);
@@ -146,7 +146,7 @@ public class ItemFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String itemId = txtSearch.getText();
         try {
-            Item item = ItemModel.search(itemId);
+            ItemDTO item = itemBo.searchItem(itemId);
             if (item != null) {
                 txtItemCode.setText(item.getItemCode());
                 txtDescription.setText(item.getDescription());
@@ -168,14 +168,14 @@ public class ItemFormController implements Initializable {
         int qty = Integer.parseInt(txtQty.getText());
         double unitPrice = Double.parseDouble(txtUnitPrice.getText());
 
-        var item = new Item(itemCode, description, qty, unitPrice);
+        var item = new ItemDTO(itemCode, description, qty, unitPrice);
         if (Regex.validateItemCID(itemCode)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = ItemModel.update(item);
+                    boolean isUpdated = itemBo.updateItem(new ItemDTO(itemCode, description, qty, unitPrice));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! Item Updated!").show();
                         txtSearch.setText(null);
@@ -214,9 +214,9 @@ public class ItemFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<ItemTm> obList = FXCollections.observableArrayList();
-            List<Item> cusList = ItemModel.getAll();
+            List<ItemDTO> cusList = itemBo.getAllItem();
 
-            for(Item item : cusList) {
+            for(ItemDTO item : cusList) {
                 obList.add(new ItemTm(
                         item.getItemCode(),
                         item.getDescription(),
@@ -263,7 +263,7 @@ public class ItemFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/ItemReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/ItemReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);

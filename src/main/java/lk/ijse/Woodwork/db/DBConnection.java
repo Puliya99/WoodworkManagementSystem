@@ -3,7 +3,6 @@ package lk.ijse.Woodwork.db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLOutput;
 import java.util.Properties;
 
 public class DBConnection {

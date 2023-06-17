@@ -12,9 +12,10 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.ProductModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.ProductBO;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Product;
+import lk.ijse.Woodwork.dto.ProductDTO;
 import lk.ijse.Woodwork.dto.tm.ProductTm;
 import lk.ijse.Woodwork.util.Regex;
 import net.sf.jasperreports.engine.*;
@@ -71,7 +72,7 @@ public class ProductFormController implements Initializable {
 
     @FXML
     private TextField txtUnitPrice;
-
+    ProductBO productBO = (ProductBO) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.PRODUCT);
     @FXML
     void btnBackOnAction(ActionEvent event) throws IOException {
         Stage window = (Stage)  addProduct.getScene().getWindow();
@@ -96,7 +97,7 @@ public class ProductFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = ProductModel.delete(ID);
+                Boolean isDeleted = productBO.deleteProduct(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "PRODUCT DELETED").show();
                     txtSearch.setText(null);
@@ -129,7 +130,7 @@ public class ProductFormController implements Initializable {
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = ProductModel.save(jobCardNo, jobCardStartDate, description, qty, unitPrice);
+                    boolean isSaved = productBO.saveProduct(new ProductDTO(jobCardNo, jobCardStartDate, description, qty, unitPrice));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Product saved!!!").show();
                         txtSearch.setText(null);
@@ -154,7 +155,7 @@ public class ProductFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String jobCardNo = txtSearch.getText();
         try {
-            Product product = ProductModel.search(jobCardNo);
+            ProductDTO product = productBO.searchProduct(jobCardNo);
             if (product != null) {
                 txtJobCardNo.setText(product.getJobCardNo());
                 txtJobCardStartDate.setText(String.valueOf(product.getJobCardStartDate()));
@@ -178,14 +179,13 @@ public class ProductFormController implements Initializable {
         int qty = Integer.parseInt(txtQty.getText());
         Double unitPrice = Double.parseDouble(txtUnitPrice.getText());
 
-        var product = new Product(jobCardNo, jobCardStartDate, description, qty, unitPrice);
         if (Regex.validateProductCID(jobCardNo)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = ProductModel.update(product);
+                    boolean isUpdated = productBO.updateProduct(new ProductDTO(jobCardNo, jobCardStartDate, description, qty, unitPrice));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! Product Updated!").show();
                         txtSearch.setText(null);
@@ -211,7 +211,7 @@ public class ProductFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/productReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/productReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
 //            JasperPrintManager.printReport(jasperPrint, true);
@@ -239,9 +239,9 @@ public class ProductFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<ProductTm> obList = FXCollections.observableArrayList();
-            List<Product> cusList = ProductModel.getAll();
+            List<ProductDTO> cusList = productBO.getAllProduct();
 
-            for(Product product : cusList) {
+            for(ProductDTO product : cusList) {
                 obList.add(new ProductTm(
                         product.getJobCardNo(),
                         product.getJobCardStartDate(),

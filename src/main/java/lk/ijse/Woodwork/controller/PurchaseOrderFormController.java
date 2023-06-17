@@ -14,13 +14,14 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.ItemModel;
-import lk.ijse.Woodwork.Model.PurchaseOrderModel;
-import lk.ijse.Woodwork.Model.SupplierModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.ItemBo;
+import lk.ijse.Woodwork.bo.custom.PurchaseOrderBo;
+import lk.ijse.Woodwork.bo.custom.SupplierBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Item;
-import lk.ijse.Woodwork.dto.PurchaseOrderDto;
-import lk.ijse.Woodwork.dto.Supplier;
+import lk.ijse.Woodwork.dto.ItemDTO;
+import lk.ijse.Woodwork.dto.PurchaseOrderDTO;
+import lk.ijse.Woodwork.dto.SupplierDTO;
 import lk.ijse.Woodwork.dto.tm.PurchaseOrderTm;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
@@ -91,6 +92,10 @@ public class PurchaseOrderFormController implements Initializable {
 
     private ObservableList<PurchaseOrderTm> obList = FXCollections.observableArrayList();
 
+    ItemBo itemBo = (ItemBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.ITEM);
+    SupplierBo supplierBo = (SupplierBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.SUPPLIER);
+    PurchaseOrderBo purchaseOrderBo = (PurchaseOrderBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.PURCHASEORDER);
+
     @FXML
     void btnAddToCartOnAction(ActionEvent event) {
         String code = (String) cmbItemCode.getValue();
@@ -145,7 +150,7 @@ public class PurchaseOrderFormController implements Initializable {
     private void loadItemCodes() {
         try {
             ObservableList<String> obList = FXCollections.observableArrayList();
-            List<String> codes = ItemModel.getCodes();
+            List<String> codes = itemBo.getCodesItem();
 
             for (String itemCode : codes) {
                 obList.add(itemCode);
@@ -163,7 +168,7 @@ public class PurchaseOrderFormController implements Initializable {
 
     private void loadSupplierIds() {
         try {
-            List<String> ids = SupplierModel.getIds();
+            List<String> ids = supplierBo.getIdsSupplier();
             ObservableList<String> obList = FXCollections.observableArrayList();
 
             for (String supplierId : ids) {
@@ -237,7 +242,7 @@ public class PurchaseOrderFormController implements Initializable {
     }
 
    @FXML
-    void btnPlaceOrderOnAction(ActionEvent event) {
+    void btnPlaceOrderOnAction(ActionEvent event) throws SQLException {
         String supplierId = cmbSupplierId.getValue();
         String itemCode = cmbItemCode.getValue();
         Integer suppliyQty = Integer.parseInt(txtQty.getText());
@@ -245,17 +250,26 @@ public class PurchaseOrderFormController implements Initializable {
 
        System.out.println(suppliyQty);
 
-        List<PurchaseOrderDto> purchaseOrderList = new ArrayList<>();
+        List<PurchaseOrderDTO> purchaseOrderDTOList = new ArrayList<>();
+        List<ItemDTO> itemDTOList = new ArrayList<>();
 
         for (int i = 0; i < tblOrderCart.getItems().size(); i++) {
             PurchaseOrderTm tm = obList.get(i);
 
-            PurchaseOrderDto purchaseOrder = new PurchaseOrderDto(tm.getCode(), tm.getQty(), tm.getUnitPrice(),Double.parseDouble(lblUnitPrice.getText()));
-            purchaseOrderList.add(purchaseOrder);
+            PurchaseOrderDTO purchaseOrderDTO = new PurchaseOrderDTO(tm.getCode(), tm.getQty(), tm.getUnitPrice(),Double.parseDouble(lblUnitPrice.getText()));
+            purchaseOrderDTOList.add(purchaseOrderDTO);
         }
 
+       for (int i = 0; i < tblOrderCart.getItems().size(); i++) {
+           PurchaseOrderTm tm = obList.get(i);
+
+           ItemDTO itemDTO = itemBo.searchByIdItem(tm.getCode());
+           itemDTO.setQty(tm.getQty());
+           itemDTOList.add(itemDTO);
+       }
+
         try {
-            boolean isPlaced = PurchaseOrderModel.purchaseOrder( itemCode,supplierId,suppliyQty,suppliyeAmount, purchaseOrderList);
+            boolean isPlaced = purchaseOrderBo.purchaseOrder( itemCode,supplierId,suppliyQty,suppliyeAmount, purchaseOrderDTOList,itemDTOList);
             if(isPlaced) {
                 new Alert(Alert.AlertType.INFORMATION, "Order Placed!").show();
             } else {
@@ -271,7 +285,7 @@ public class PurchaseOrderFormController implements Initializable {
     void cmbSupplierIdOnAction(ActionEvent event) {
         String supplierId = (String) cmbSupplierId.getSelectionModel().getSelectedItem();
         try {
-            Supplier supplier = SupplierModel.searchById(supplierId);
+            SupplierDTO supplier = supplierBo.searchByIdSupplier(supplierId);
             lblSupplierName.setText(supplier.getSupplierName());
         } catch (SQLException e) {
             e.printStackTrace();
@@ -283,7 +297,7 @@ public class PurchaseOrderFormController implements Initializable {
     void cmbItemOnAction(ActionEvent event) {
         String code = (String) cmbItemCode.getSelectionModel().getSelectedItem();
         try {
-            Item item = ItemModel.searchById(code);
+            ItemDTO item = itemBo.searchByIdItem(code);
             fillItemFields(item);
             txtQty.requestFocus();
         } catch (SQLException e) {
@@ -292,7 +306,7 @@ public class PurchaseOrderFormController implements Initializable {
         }
     }
 
-    private void fillItemFields(Item item) {
+    private void fillItemFields(ItemDTO item) {
         lblDescription.setText(item.getDescription());
         lblQtyOnHand.setText(String.valueOf(item.getQty()));
         lblUnitPrice.setText(String.valueOf(item.getUnitPrice()));
@@ -306,7 +320,7 @@ public class PurchaseOrderFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/purchaseOrder.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/purchaseOrder.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);

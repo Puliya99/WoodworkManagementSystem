@@ -82,7 +82,7 @@
 				</staticText>
 				<image>
 					<reportElement x="451" y="0" width="102" height="93" uuid="e828d87f-2f80-49aa-a598-56b182284e71"/>
-					<imageExpression><![CDATA["/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/resources/img/logo.png"]]></imageExpression>
+					<imageExpression><![CDATA["/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/resources/img/logo.png"]]></imageExpression>
 				</image>
 			</frame>
 			<frame>

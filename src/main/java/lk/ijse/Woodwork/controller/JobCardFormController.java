@@ -14,13 +14,14 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.ItemModel;
-import lk.ijse.Woodwork.Model.JobCardModel;
-import lk.ijse.Woodwork.Model.ProductModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.ItemBo;
+import lk.ijse.Woodwork.bo.custom.JobCardBo;
+import lk.ijse.Woodwork.bo.custom.ProductBO;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Item;
+import lk.ijse.Woodwork.dto.ItemDTO;
 import lk.ijse.Woodwork.dto.JobCardDTO;
-import lk.ijse.Woodwork.dto.Product;
+import lk.ijse.Woodwork.dto.ProductDTO;
 import lk.ijse.Woodwork.dto.tm.JobCardTm;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
@@ -93,7 +94,9 @@ public class JobCardFormController implements Initializable {
     private TextField txtQty;
 
     private ObservableList<JobCardTm> obList = FXCollections.observableArrayList();
-
+    JobCardBo jobCardBo = (JobCardBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.JOBCARD);
+    ItemBo itemBo = (ItemBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.ITEM);
+    ProductBO productBO = (ProductBO) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.PRODUCT);
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         loadItemCodes();
@@ -105,7 +108,7 @@ public class JobCardFormController implements Initializable {
 
     private void generateNextOrderId() {
         try {
-            String nextId = JobCardModel.generateNextOrderId();
+            String nextId = jobCardBo.generateNextOrderId();
             lblIdCode.setText(nextId);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -220,7 +223,7 @@ public class JobCardFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/JobCardReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/JobCardReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);
@@ -230,21 +233,30 @@ public class JobCardFormController implements Initializable {
     }
 
     @FXML
-    void btnPlaceOrderOnAction(ActionEvent event) {
+    void btnPlaceOrderOnAction(ActionEvent event) throws SQLException {
         String idCode = lblIdCode.getText();
         String jobCardNo = cmbJobCardNo.getValue();
 
         List<JobCardDTO> jobCardDTOList = new ArrayList<>();
+        List<ItemDTO> itemList = new ArrayList<>();
 
         for (int i = 0; i < tblProductCart.getItems().size(); i++) {
             JobCardTm tm = obList.get(i);
 
             JobCardDTO jobCardDTO = new JobCardDTO(tm.getItemCode(), tm.getItemQty(), tm.getTotal());
             jobCardDTOList.add(jobCardDTO);
+
+        }
+        for (int i = 0; i < tblProductCart.getItems().size(); i++) {
+            JobCardTm tm = obList.get(i);
+
+            ItemDTO itemDTO = itemBo.searchByIdItem(tm.getItemCode());
+            itemDTO.setQty(tm.getItemQty());
+            itemList.add(itemDTO);
         }
 
         try {
-            boolean isPlaced = JobCardModel.jobCard(idCode, jobCardNo, jobCardDTOList);
+            boolean isPlaced = jobCardBo.jobCard(idCode, jobCardNo, jobCardDTOList,itemList);
             if(isPlaced) {
                 new Alert(Alert.AlertType.INFORMATION, "JobCard Placed!").show();
                 generateNextOrderId();
@@ -265,7 +277,7 @@ public class JobCardFormController implements Initializable {
     void cmbItemCodeOnAction(ActionEvent event) {
         String code = (String) cmbItemCode.getSelectionModel().getSelectedItem();
         try {
-            Item item = ItemModel.searchById(code);
+            ItemDTO item = itemBo.searchByIdItem(code);
             fillItemFields(item);
             txtQty.requestFocus();
         } catch (SQLException e) {
@@ -274,7 +286,7 @@ public class JobCardFormController implements Initializable {
         }
     }
 
-    private void fillItemFields(Item item) {
+    private void fillItemFields(ItemDTO item) {
         lblDescription.setText(item.getDescription());
         lblQtyOnHand.setText(String.valueOf(item.getQty()));
         lblUnitPrice.setText(String.valueOf(item.getUnitPrice()));
@@ -283,7 +295,7 @@ public class JobCardFormController implements Initializable {
     private void loadItemCodes() {
         try {
             ObservableList<String> obList = FXCollections.observableArrayList();
-            List<String> codes = ItemModel.getCodes();
+            List<String> codes = itemBo.getCodesItem();
 
             for (String itemCode : codes) {
                 obList.add(itemCode);
@@ -299,7 +311,7 @@ public class JobCardFormController implements Initializable {
     void cmbJobCardNoOnAction(ActionEvent event) {
         String jobCardNo = (String) cmbJobCardNo.getSelectionModel().getSelectedItem();
         try {
-            Product product = ProductModel.searchById(jobCardNo);
+            ProductDTO product = productBO.searchByIdProduct(jobCardNo);
             lblJobCardName.setText(product.getDescription());
         } catch (SQLException e) {
             e.printStackTrace();
@@ -310,7 +322,7 @@ public class JobCardFormController implements Initializable {
     private void loadjobCardCodes() {
         try {
             ObservableList<String> obList = FXCollections.observableArrayList();
-            List<String> jobCardNo = ProductModel.getCodes();
+            List<String> jobCardNo = productBO.getCodesProduct();
 
             for (String code : jobCardNo ) {
                 obList.add(code);

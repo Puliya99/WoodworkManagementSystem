@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+
+<AnchorPane fx:id="qrCode" prefHeight="400.0" prefWidth="486.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="lk.ijse.Woodwork.controller.QrScannerFormController">
+   <children>
+      <ImageView fx:id="scanMeimg" fitHeight="300.0" fitWidth="300.0" layoutX="93.0" layoutY="25.0" pickOnBounds="true" preserveRatio="true" />
+      <Label layoutX="170.0" layoutY="339.0" text="Scan me">
+         <font>
+            <Font name="Times New Roman Bold" size="41.0" />
+         </font>
+      </Label>
+   </children>
+</AnchorPane>

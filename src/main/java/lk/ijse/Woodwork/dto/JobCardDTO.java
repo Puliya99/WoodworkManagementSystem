@@ -10,6 +10,8 @@ import lombok.*;
 
 public class JobCardDTO {
     String itemCode;
+
     Integer qty;
+
     Double total;
 }

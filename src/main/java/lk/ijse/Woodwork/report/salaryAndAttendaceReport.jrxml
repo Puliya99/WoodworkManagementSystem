@@ -90,7 +90,7 @@
 				</staticText>
 				<image>
 					<reportElement x="451" y="0" width="102" height="93" uuid="22bb68b1-1778-419e-a8a5-bb26723323bb"/>
-					<imageExpression><![CDATA["/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/resources/img/logo.png"]]></imageExpression>
+					<imageExpression><![CDATA["/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/resources/img/logo.png"]]></imageExpression>
 				</image>
 			</frame>
 			<frame>

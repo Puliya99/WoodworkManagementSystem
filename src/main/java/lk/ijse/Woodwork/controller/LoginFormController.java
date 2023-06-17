@@ -12,7 +12,9 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.LoginModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.LoginBo;
+import lk.ijse.Woodwork.dto.UserDTO;
 import lk.ijse.Woodwork.util.Regex;
 import java.io.IOException;
 import java.net.URL;
@@ -42,13 +44,14 @@ public class LoginFormController implements Initializable {
 
     private Boolean passwordVisible;
 
+    LoginBo loginBo = (LoginBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.LOGIN);
     @FXML
     void btnLoginOnAction(ActionEvent actionEvent) {
         String username = txtUserName.getText();
         String password = txtPassword.getText();
         if (Regex.validateUsername(username)&& Regex.validatePassword(password)) {
             try {
-                boolean isUserVerified = LoginModel.userVerified(username, password);
+                boolean isUserVerified = loginBo.userVerifiedUser(new UserDTO(username, password));
                 if (isUserVerified) {
                     Stage window = (Stage) root.getScene().getWindow();
                     window.setScene(new Scene(FXMLLoader.load(getClass().getResource("/view/dashboard_form.fxml"))));

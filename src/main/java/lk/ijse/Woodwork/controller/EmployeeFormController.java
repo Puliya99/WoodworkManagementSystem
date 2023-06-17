@@ -12,12 +12,12 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import lk.ijse.Woodwork.Model.EmployeeModel;
+import lk.ijse.Woodwork.bo.BOFactory;
+import lk.ijse.Woodwork.bo.custom.EmployeeBo;
 import lk.ijse.Woodwork.db.DBConnection;
-import lk.ijse.Woodwork.dto.Employee;
+import lk.ijse.Woodwork.dto.EmployeeDTO;
 import lk.ijse.Woodwork.dto.tm.EmployeeTm;
 import lk.ijse.Woodwork.util.Regex;
-import lombok.SneakyThrows;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.xml.JRXmlLoader;
@@ -73,7 +73,7 @@ public class EmployeeFormController implements Initializable {
     @FXML
     private TextField txtUserName;
 
-
+    EmployeeBo employeeBo = (EmployeeBo) BOFactory.getBoFactory().getBO(BOFactory.BOTypes.EMPLOYEE);
     @FXML
     void btnDeleteOnAction(ActionEvent event) {
         String ID = txtEmpId.getText();
@@ -82,7 +82,7 @@ public class EmployeeFormController implements Initializable {
             ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
             Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Delete?", yes, no).showAndWait();
             if (result.orElse(no) == yes) {
-                Boolean isDeleted = EmployeeModel.delete(ID);
+                Boolean isDeleted = employeeBo.deleteEmployee(ID);
                 if (isDeleted) {
                     new Alert(Alert.AlertType.INFORMATION, "EMPLOYEE DELETED").show();
                     txtSearch.setText(null);
@@ -109,13 +109,14 @@ public class EmployeeFormController implements Initializable {
         String userName = txtUserName.getText();
         String address = txtEmpAddress.getText();
         String contact = txtContactNo.getText();
+        var employee = new EmployeeDTO(empId, empName, userName, address, contact);
         if (Regex.validateEmployeeCID(empId) && Regex.validateName(empName) && Regex.validateUsername(userName) && Regex.validateAddress(address) && Regex.validateMobile(contact)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Save?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isSaved = EmployeeModel.save(empId, empName, userName, address, contact);
+                    boolean isSaved = employeeBo.saveEmployee(new EmployeeDTO(empId, empName, userName, address, contact));
                     if (isSaved) {
                         new Alert(Alert.AlertType.INFORMATION, "Employee saved!!!").show();
                         txtSearch.setText(null);
@@ -140,7 +141,7 @@ public class EmployeeFormController implements Initializable {
     void btnSearchOnAction(ActionEvent event) {
         String empId = txtSearch.getText();
         try {
-            Employee employee = EmployeeModel.search(empId);
+            EmployeeDTO employee = employeeBo.searchEmployee(empId);
             if (employee != null) {
                 txtEmpId.setText(employee.getEmpId());
                 txtEmpName.setText(employee.getEmpName());
@@ -164,14 +165,14 @@ public class EmployeeFormController implements Initializable {
         String address = txtEmpAddress.getText();
         String contact = txtContactNo.getText();
 
-        var employee = new Employee(empId, empName, userName, address, contact);
+        var employee = new EmployeeDTO(empId, empName, userName, address, contact);
         if (Regex.validateName(empName) && Regex.validateUsername(userName) && Regex.validateAddress(address) && Regex.validateMobile(contact)) {
             try {
                 ButtonType yes = new ButtonType("Yes", ButtonBar.ButtonData.OK_DONE);
                 ButtonType no = new ButtonType("No", ButtonBar.ButtonData.CANCEL_CLOSE);
                 Optional<ButtonType> result = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure to Update?", yes, no).showAndWait();
                 if (result.orElse(no) == yes) {
-                    boolean isUpdated = EmployeeModel.update(employee);
+                    boolean isUpdated = employeeBo.updateEmployee(new EmployeeDTO(empId, empName, userName, address, contact));
                     if (isUpdated) {
                         new Alert(Alert.AlertType.INFORMATION, "huree! Employee Updated!").show();
                         txtSearch.setText(null);
@@ -197,7 +198,7 @@ public class EmployeeFormController implements Initializable {
     @FXML
     void btnReportOnAction(ActionEvent event) {
         try {
-            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/Final Project/Woodwork/src/main/java/lk/ijse/Woodwork/report/employeeReport.jrxml"));
+            JasperDesign design = JRXmlLoader.load(new File("/home/lmarcho/Documents/IJSE/2nd Semester/woodWork Project convert to Layeard/Woodwork/src/main/java/lk/ijse/Woodwork/report/employeeReport.jrxml"));
             JasperReport compileReport = JasperCompileManager.compileReport(design);
             JasperPrint jasperPrint = JasperFillManager.fillReport(compileReport, null, DBConnection.getInstance().getConnection());
             JasperViewer.viewReport(jasperPrint,false);
@@ -262,9 +263,9 @@ public class EmployeeFormController implements Initializable {
     void getAll() {
         try {
             ObservableList<EmployeeTm> obList = FXCollections.observableArrayList();
-            List<Employee> cusList = EmployeeModel.getAll();
+            List<EmployeeDTO> cusList = employeeBo.getAllEmployee();
 
-            for(Employee employee : cusList) {
+            for(EmployeeDTO employee : cusList) {
                 obList.add(new EmployeeTm(
                         employee.getEmpId(),
                         employee.getEmpName(),
